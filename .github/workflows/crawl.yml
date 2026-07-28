@@ -1,0 +1,27 @@
+name: Waitan-Hot-Words-Crawler
+
+on:
+  schedule:
+    - cron: '*/50 * * * *'
+  workflow_dispatch:
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install requests pandas
+      - name: Run crawler
+        run: python crawler.py
+      - name: Commit and push results
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@example.com"
+          git add hot_words.csv
+          git commit -m "Update hot words" || echo "No changes"
+          git push
