@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import re
 import json
+import os  # 新增
 
 # 读取关键词配置
 with open('keywords.txt', 'r', encoding='utf-8') as f:
@@ -40,10 +41,8 @@ def get_baidu_hot():
     try:
         resp = requests.get(url, headers=headers, timeout=15)
         resp.encoding = 'utf-8'
-        # 尝试多种匹配方式
         titles = re.findall(r'<div class="c-single-text-ellipsis">(.*?)</div>', resp.text)
         if not titles:
-            # 备用匹配方式
             titles = re.findall(r'"title":"(.*?)"', resp.text)
         if not titles:
             titles = re.findall(r'<a[^>]*>([^<]*外滩[^<]*)</a>', resp.text)
@@ -98,25 +97,36 @@ def main():
     all_items.extend(get_zhihu_hot())
     
     if all_items:
-        df = pd.DataFrame(all_items)
-        df.to_csv('hot_words.csv', index=False, encoding='utf-8-sig')
-        print(f"\n采集完毕，共发现 {len(df)} 条与外滩相关的热点。")
+        df_new = pd.DataFrame(all_items)
+        
+        if os.path.exists('hot_words.csv'):
+            df_existing = pd.read_csv('hot_words.csv')
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+            df_combined.to_csv('hot_words.csv', index=False, encoding='utf-8-sig')
+            print(f"\n✅ 追加采集完毕，新增 {len(df_new)} 条，总计 {len(df_combined)} 条")
+        else:
+            df_new.to_csv('hot_words.csv', index=False, encoding='utf-8-sig')
+            print(f"\n✅ 采集完毕，共发现 {len(df_new)} 条与外滩相关的热点。")
+        
         print("命中的热词：")
-        for _, row in df.iterrows():
+        for _, row in df_new.iterrows():
             print(f"  [{row['platform']}] {row['title']}")
     else:
         print("\n⚠️ 当前未发现外滩相关热词。请检查：")
         print("  1. keywords.txt 是否包含有效关键词")
         print("  2. 目标网站是否可访问")
         print("  3. 是否有网络连接问题")
-        # 生成一个测试文件以便流程继续
-        df = pd.DataFrame([{
-            'platform': '测试',
-            'title': '暂无热点数据，请检查爬虫配置',
-            'timestamp': datetime.now().isoformat()
-        }])
-        df.to_csv('hot_words.csv', index=False, encoding='utf-8-sig')
-        print("  已生成测试文件 hot_words.csv")
+        
+        if not os.path.exists('hot_words.csv'):
+            df = pd.DataFrame([{
+                'platform': '测试',
+                'title': '暂无热点数据，请检查爬虫配置',
+                'timestamp': datetime.now().isoformat()
+            }])
+            df.to_csv('hot_words.csv', index=False, encoding='utf-8-sig')
+            print("  已生成测试文件 hot_words.csv")
+        else:
+            print("  📁 已有历史数据，保留不覆盖")
 
 if __name__ == '__main__':
     main()
