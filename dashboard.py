@@ -104,4 +104,4 @@ def update_dashboard(n):
 
 if __name__ == '__main__':
     print("看板启动中，请打开浏览器访问 http://127.0.0.1:8050")
-    app.run_server(debug=True)
+    app.run_server(debug=False)
